@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+
+	"github.com/capernix/gohttpx/handlers"
 )
 
 type User struct {
@@ -20,9 +22,18 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handleRoot)
 
+	//USERS
+
 	mux.HandleFunc("POST /users", createUser)
 	mux.HandleFunc("GET /users/{id}", getUser)
 	mux.HandleFunc("DELETE /users/{id}", deleteUser)
+
+	//NOTES
+
+	mux.HandleFunc("POST /notes", handlers.CreateNote)
+	mux.HandleFunc("GET /notes", handlers.ListNotes)
+	mux.HandleFunc("GET /notes/{id}", handlers.GetNote)
+	mux.HandleFunc("DELETE /notes/{id}", handlers.DeleteNote)
 
 	fmt.Println("Listening to port 8080!")
 	http.ListenAndServe(":8080", mux)
