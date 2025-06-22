@@ -1,42 +1,63 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
+	"log"
 	"net/http"
-	"strconv"
-	"sync"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/capernix/gohttpx/handlers"
+	"github.com/capernix/gohttpx/middleware"
 )
-
-type User struct {
-	Name string `json:"name"`
-}
-
-var userCache = make(map[int]User)
-
-var cacheMutex sync.RWMutex
 
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handleRoot)
 
-	//USERS
-
-	mux.HandleFunc("POST /users", createUser)
-	mux.HandleFunc("GET /users/{id}", getUser)
-	mux.HandleFunc("DELETE /users/{id}", deleteUser)
-
-	//NOTES
+	mux.HandleFunc("POST /users", handlers.CreateUser)
+	mux.HandleFunc("GET /users/{id}", handlers.GetUser)
+	mux.HandleFunc("DELETE /users/{id}", handlers.DeleteUser)
 
 	mux.HandleFunc("POST /notes", handlers.CreateNote)
 	mux.HandleFunc("GET /notes", handlers.ListNotes)
 	mux.HandleFunc("GET /notes/{id}", handlers.GetNote)
 	mux.HandleFunc("DELETE /notes/{id}", handlers.DeleteNote)
 
-	fmt.Println("Listening to port 8080!")
-	http.ListenAndServe(":8080", mux)
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./public/"))))
+
+	handler := middleware.Chain(
+		middleware.Logger,
+		middleware.Recovery,
+	)(mux)
+
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: handler,
+	}
+
+	go func() {
+		fmt.Println("Server starting on :8080")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("Server failed to start:", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+	log.Println("Server exited")
 }
 
 func handleRoot(
@@ -44,109 +65,4 @@ func handleRoot(
 	r *http.Request,
 ) {
 	fmt.Fprintf(w, "Hello World")
-}
-
-func getUser(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-
-	if err != nil {
-		http.Error(
-			w,
-			err.Error(),
-			http.StatusBadRequest,
-		)
-		return
-	}
-
-	cacheMutex.RLock()
-	user, ok := userCache[id]
-	cacheMutex.RUnlock()
-
-	if !ok {
-		http.Error(
-			w,
-			"user not found",
-			http.StatusNotFound,
-		)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	j, err := json.Marshal(user)
-	if err != nil {
-		http.Error(
-			w,
-			err.Error(),
-			http.StatusInternalServerError,
-		)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(j)
-}
-
-func createUser(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	var user User
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
-		http.Error(
-			w,
-			err.Error(),
-			http.StatusBadRequest,
-		)
-		return
-	}
-
-	if user.Name == "" {
-		http.Error(
-			w,
-			"name is mandatory",
-			http.StatusBadRequest,
-		)
-		return
-	}
-
-	cacheMutex.Lock()
-	userCache[len(userCache)+1] = user
-	cacheMutex.Unlock()
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func deleteUser(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-
-	if err != nil {
-		http.Error(
-			w,
-			err.Error(),
-			http.StatusBadRequest,
-		)
-		return
-	}
-
-	if _, ok := userCache[id]; !ok {
-		http.Error(
-			w,
-			"user not found",
-			http.StatusBadRequest,
-		)
-		return
-	}
-
-	cacheMutex.Lock()
-	delete(userCache, id)
-	cacheMutex.Unlock()
-
-	w.WriteHeader(http.StatusNoContent)
 }

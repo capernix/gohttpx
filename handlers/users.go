@@ -9,13 +9,12 @@ import (
 	"github.com/capernix/gohttpx/utils"
 )
 
-func CreateNote(
+func CreateUser(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
 	var req struct {
-		Title   string `json:"title"`
-		Content string `json:"content"`
+		Name string `json:"name"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -27,7 +26,7 @@ func CreateNote(
 		return
 	}
 
-	note, err := models.CreateNote(req.Title, req.Content)
+	user, err := models.CreateUser(req.Name)
 
 	if err != nil {
 		utils.WriteError(
@@ -38,10 +37,10 @@ func CreateNote(
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, note)
+	utils.WriteJSON(w, http.StatusCreated, user)
 }
 
-func GetNote(
+func GetUser(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -49,12 +48,12 @@ func GetNote(
 	if err != nil {
 		utils.WriteError(
 			w,
-			"invalid ID",
+			"invalid user ID",
 			http.StatusBadRequest)
 		return
 	}
 
-	note, exists := models.GetNote(id)
+	user, exists := models.GetUser(id)
 	if !exists {
 		utils.WriteError(
 			w,
@@ -64,10 +63,10 @@ func GetNote(
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, note)
+	utils.WriteJSON(w, http.StatusOK, user)
 }
 
-func DeleteNote(
+func DeleteUser(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -81,10 +80,10 @@ func DeleteNote(
 		return
 	}
 
-	if !models.DeleteNote(id) {
+	if !models.DeleteUser(id) {
 		utils.WriteError(
 			w,
-			"note not found",
+			"user not found",
 			http.StatusNotFound,
 		)
 		return
@@ -92,13 +91,4 @@ func DeleteNote(
 
 	w.WriteHeader(http.StatusNoContent)
 
-}
-
-func ListNotes(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	notes := models.ListNotes()
-
-	utils.WriteJSON(w, http.StatusOK, notes)
 }
