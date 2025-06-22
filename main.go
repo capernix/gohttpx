@@ -16,9 +16,9 @@ import (
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", handleRoot)
 
 	mux.HandleFunc("POST /users", handlers.CreateUser)
+	mux.HandleFunc("GET /users", handlers.ListUsers)
 	mux.HandleFunc("GET /users/{id}", handlers.GetUser)
 	mux.HandleFunc("DELETE /users/{id}", handlers.DeleteUser)
 
@@ -26,8 +26,6 @@ func main() {
 	mux.HandleFunc("GET /notes", handlers.ListNotes)
 	mux.HandleFunc("GET /notes/{id}", handlers.GetNote)
 	mux.HandleFunc("DELETE /notes/{id}", handlers.DeleteNote)
-
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./public/"))))
 
 	handler := middleware.Chain(
 		middleware.Logger,
@@ -58,11 +56,4 @@ func main() {
 		log.Fatal("Server forced to shutdown:", err)
 	}
 	log.Println("Server exited")
-}
-
-func handleRoot(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	fmt.Fprintf(w, "Hello World")
 }

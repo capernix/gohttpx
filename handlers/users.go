@@ -57,7 +57,7 @@ func GetUser(
 	if !exists {
 		utils.WriteError(
 			w,
-			"note not found",
+			"user not found",
 			http.StatusNotFound,
 		)
 		return
@@ -91,4 +91,13 @@ func DeleteUser(
 
 	w.WriteHeader(http.StatusNoContent)
 
+}
+
+func ListUsers(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	users := models.ListUsers()
+
+	utils.WriteJSON(w, http.StatusOK, users)
 }

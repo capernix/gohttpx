@@ -54,3 +54,14 @@ func DeleteUser(id int) bool {
 	delete(userCache, id)
 	return true
 }
+
+func ListUsers() []User {
+	userMutex.RLock()
+	defer userMutex.RUnlock()
+
+	userList := make([]User, 0, len(userCache))
+	for _, user := range userCache {
+		userList = append(userList, user)
+	}
+	return userList
+}
