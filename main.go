@@ -10,11 +10,17 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/capernix/gohttpx/database"
 	"github.com/capernix/gohttpx/handlers"
 	"github.com/capernix/gohttpx/middleware"
 )
 
 func main() {
+	if err := database.InitDB(); err != nil {
+		log.Fatal("Failed to initialize database:", err)
+	}
+	defer database.CloseDB()
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /users", handlers.CreateUser)

@@ -1,8 +1,10 @@
 package models
 
 import (
+	"database/sql"
 	"errors"
-	"sync"
+
+	"github.com/capernix/gohttpx/database"
 )
 
 type Note struct {
@@ -11,59 +13,61 @@ type Note struct {
 	Content string `json:"content"`
 }
 
-var (
-	notes      = make(map[int]Note)
-	notesMutex sync.RWMutex
-	nextID     = 1
-)
-
 func CreateNote(title, content string) (Note, error) {
 	if title == "" || content == "" {
 		return Note{}, errors.New("title and content are required")
 	}
 
-	notesMutex.Lock()
-	defer notesMutex.Unlock()
-
-	note := Note{
-		ID:      nextID,
-		Title:   title,
-		Content: content,
+	var note Note
+	query := "INSERT INTO notes (title, content) VALUES (?, ?) RETURNING id, title, content"
+	err := database.DB.QueryRow(query, title, content).Scan(&note.ID, &note.Title, &note.Content)
+	if err != nil {
+		return Note{}, err
 	}
-
-	notes[nextID] = note
-	nextID++
-
 	return note, nil
 }
 
 func GetNote(id int) (Note, bool) {
-	notesMutex.Lock()
-	defer notesMutex.Unlock()
-
-	note, exists := notes[id]
-	return note, exists
+	var note Note
+	query := "SELECT id, title, content FROM notes WHERE id = ?"
+	err := database.DB.QueryRow(query, id).Scan(&note.ID, &note.Title, &note.Content)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return Note{}, false
+		}
+		return Note{}, false
+	}
+	return note, true
 }
 
 func DeleteNote(id int) bool {
-	notesMutex.Lock()
-	defer notesMutex.Unlock()
-
-	if _, exists := notes[id]; !exists {
+	query := "DELETE FROM notes WHERE id = ?"
+	result, err := database.DB.Exec(query, id)
+	if err != nil {
 		return false
 	}
-
-	delete(notes, id)
-	return true
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false
+	}
+	return rowsAffected > 0
 }
 
 func ListNotes() []Note {
-	notesMutex.RLock()
-	defer notesMutex.RUnlock()
-
-	noteList := make([]Note, 0, len(notes))
-	for _, note := range notes {
-		noteList = append(noteList, note)
+	query := "SELECT id, title, content FROM notes"
+	rows, err := database.DB.Query(query)
+	if err != nil {
+		return []Note{}
 	}
-	return noteList
+	defer rows.Close()
+
+	var notes []Note
+	for rows.Next() {
+		var note Note
+		if err := rows.Scan(&note.ID, &note.Title, &note.Content); err != nil {
+			continue
+		}
+		notes = append(notes, note)
+	}
+	return notes
 }

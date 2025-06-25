@@ -1,8 +1,9 @@
 package models
 
 import (
-	"errors"
-	"sync"
+	"database/sql"
+
+	"github.com/capernix/gohttpx/database"
 )
 
 type User struct {
@@ -10,58 +11,57 @@ type User struct {
 	Name string `json:"name"`
 }
 
-var (
-	userCache  = make(map[int]User)
-	userMutex  sync.RWMutex
-	nextUserID = 1
-)
-
 func CreateUser(name string) (User, error) {
-	if name == "" {
-		return User{}, errors.New("name is required")
+	var user User
+	query := "INSERT INTO users (name) VALUES (?) RETURNING id, name"
+	err := database.DB.QueryRow(query, name).Scan(&user.ID, &user.Name)
+	if err != nil {
+		return User{}, err
 	}
-
-	userMutex.Lock()
-	defer userMutex.Unlock()
-
-	user := User{
-		ID:   nextUserID,
-		Name: name,
-	}
-
-	userCache[nextUserID] = user
-	nextUserID++
-
 	return user, nil
 }
 
 func GetUser(id int) (User, bool) {
-	userMutex.Lock()
-	defer userMutex.Unlock()
-
-	user, exists := userCache[id]
-	return user, exists
+	var user User
+	query := "SELECT id, name FROM users WHERE id = ?"
+	err := database.DB.QueryRow(query, id).Scan(&user.ID, &user.Name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return User{}, false
+		}
+		return User{}, false
+	}
+	return user, true
 }
 
 func DeleteUser(id int) bool {
-	userMutex.Lock()
-	defer userMutex.Unlock()
-
-	if _, exists := userCache[id]; !exists {
+	query := "DELETE FROM users WHERE id = ?"
+	result, err := database.DB.Exec(query, id)
+	if err != nil {
 		return false
 	}
-
-	delete(userCache, id)
-	return true
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false
+	}
+	return rowsAffected > 0
 }
 
 func ListUsers() []User {
-	userMutex.RLock()
-	defer userMutex.RUnlock()
-
-	userList := make([]User, 0, len(userCache))
-	for _, user := range userCache {
-		userList = append(userList, user)
+	query := "SELECT id, name FROM users"
+	rows, err := database.DB.Query(query)
+	if err != nil {
+		return []User{}
 	}
-	return userList
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var user User
+		if err := rows.Scan(&user.ID, &user.Name); err != nil {
+			continue
+		}
+		users = append(users, user)
+	}
+	return users
 }

@@ -6,6 +6,8 @@ services:
     container_name: gohttpx
     ports:
       - "8080:8080"
+    volumes:
+      - ./data:/app/data
     networks:
       - web
 
