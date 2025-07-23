@@ -1,0 +1,6 @@
+# SQLite database
+data/gohttpx.db
+
+# CLI binaries
+cli/gohttpx-cli
+cli/gohttpx-cli.exe

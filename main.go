@@ -13,6 +13,7 @@ import (
 	"github.com/capernix/gohttpx/database"
 	"github.com/capernix/gohttpx/handlers"
 	"github.com/capernix/gohttpx/middleware"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func main() {
@@ -22,6 +23,8 @@ func main() {
 	defer database.CloseDB()
 
 	mux := http.NewServeMux()
+
+	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	mux.HandleFunc("POST /users", handlers.CreateUser)
 	mux.HandleFunc("GET /users", handlers.ListUsers)
