@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/capernix/gohttpx/database"
+	_ "github.com/capernix/gohttpx/docs"
 	"github.com/capernix/gohttpx/handlers"
 	"github.com/capernix/gohttpx/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"

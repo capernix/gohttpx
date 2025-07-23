@@ -1,4 +1,13 @@
 definitions:
+  models.Note:
+    properties:
+      content:
+        type: string
+      id:
+        type: integer
+      title:
+        type: string
+    type: object
   models.User:
     properties:
       id:
@@ -9,6 +18,107 @@ definitions:
 info:
   contact: {}
 paths:
+  /notes:
+    get:
+      description: Get a list of all notes
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Note'
+            type: array
+      summary: List all notes
+      tags:
+      - notes
+    post:
+      consumes:
+      - application/json
+      description: Create a new note with a title and content
+      parameters:
+      - description: Note to create
+        in: body
+        name: note
+        required: true
+        schema:
+          $ref: '#/definitions/models.Note'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Note'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new note
+      tags:
+      - notes
+  /notes/{id}:
+    delete:
+      description: Delete a note by its ID
+      parameters:
+      - description: Note ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a note by ID
+      tags:
+      - notes
+    get:
+      description: Get details of a note by its ID
+      parameters:
+      - description: Note ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Note'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a note by ID
+      tags:
+      - notes
   /users:
     get:
       description: Get a list of all users

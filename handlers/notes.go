@@ -9,6 +9,16 @@ import (
 	"github.com/capernix/gohttpx/utils"
 )
 
+// CreateNote creates a new note
+// @Summary Create a new note
+// @Description Create a new note with a title and content
+// @Tags notes
+// @Accept  json
+// @Produce  json
+// @Param   note  body  models.Note  true  "Note to create"
+// @Success 201 {object} models.Note
+// @Failure 400 {object} map[string]string
+// @Router /notes [post]
 func CreateNote(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -41,6 +51,16 @@ func CreateNote(
 	utils.WriteJSON(w, http.StatusCreated, note)
 }
 
+// GetNote returns a note by ID
+// @Summary Get a note by ID
+// @Description Get details of a note by its ID
+// @Tags notes
+// @Produce  json
+// @Param   id   path   int  true  "Note ID"
+// @Success 200 {object} models.Note
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /notes/{id} [get]
 func GetNote(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -67,6 +87,15 @@ func GetNote(
 	utils.WriteJSON(w, http.StatusOK, note)
 }
 
+// DeleteNote deletes a note by ID
+// @Summary Delete a note by ID
+// @Description Delete a note by its ID
+// @Tags notes
+// @Param   id   path   int  true  "Note ID"
+// @Success 204 {string} string "No Content"
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /notes/{id} [delete]
 func DeleteNote(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -94,6 +123,13 @@ func DeleteNote(
 
 }
 
+// ListNotes lists all notes
+// @Summary List all notes
+// @Description Get a list of all notes
+// @Tags notes
+// @Produce  json
+// @Success 200 {array} models.Note
+// @Router /notes [get]
 func ListNotes(
 	w http.ResponseWriter,
 	r *http.Request,
